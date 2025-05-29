@@ -11,18 +11,10 @@
 // 7. Pico uses the code to get an access token from Spotify API
 
 // Temporary in-memory storage (reset on serverless cold start)
-let stored = {
+const stored = {
 	code: null,
 	state: null,
 	error: null,
-}
-
-
-// clear stored values
-function clearStored() {
-	stored.code = null;
-	stored.state = null;
-	stored.error = null;
 }
 
 
@@ -34,49 +26,57 @@ export default async (req, res) => {
 		stored: stored // Log current stored values
 	});
 
-	// save code from Spotify OAuth flow
-	if (req.method === 'POST') {
-		// get code and state from query params or body
-		const CODE = req.query.code || null;
-		const STATE = req.query.state || null;
-		const ERROR = req.query.error || null;
+	// save auth code from OAuth redirect
+	if (req.method === 'GET') {
+		// get and store redirect url params
+		stored.code = req.query.code || null;
+		stored.state = req.query.state || null;
+		stored.error = req.query.error || null;
 
-		// save code and state to in-memory storage
-		stored.code = CODE;
-		stored.state = STATE;
-		stored.error = ERROR;
+		// return error if no code or state provided
+		if (!stored.code || !stored.state) {
+			console.log("GET failed: No code or state provided");
+			res.status(400).json({ error: 'PROXY: No code or state provided. Please ensure you are using the correct redirect URL.' });
+			return;
+		}
 
-		console.log("Stored after POST:", stored);
+		console.log("Stored after GET:", stored);
 		res.status(200).send('Code stored!');
 	}
 
 	// get saved code to return to Pico
-	else if (req.method === 'GET') {
+	else if (req.method === 'POST') {
 		// get state from GET body
-		const STATE = req.query.state || null;
+		let state = req.body.state || null;
 
 		// function to return error response
 		const returnError = (message) => res.status(400).json({ error: message });
 
 		// return error if no state provided
-		if (!STATE) {
-			console.log("GET failed: No state provided");
-			returnError('PROXY: No state provided. Please provide a state parameter and try again.');
+		if (!state) {
+			console.log("POST failed: No state provided");
+			returnError('PROXY: No state provided. Please provide a state parameter.');
+			return;
+		}
+
+		if (!stored.code) {
+			console.log("POST failed: No code stored");
+			returnError('PROXY: No auth code stored in proxy.');
 			return;
 		}
 
 		// return error if no code stored or state mismatch
-		if (!stored.code || stored.state !== STATE) {
-			console.log("GET failed: No code or state mismatch", {
+		if (stored.state !== state) {
+			console.log("POST failed: No code or state mismatch", {
 				storedState: stored.state,
-				requestedState: STATE
+				requestedState: state
 			});
-			returnError('PROXY: No auth code stored in proxy. Please complete the Spotify OAuth flow and try again.');
+			returnError('PROXY: State mismatch. Please ensure you are using the correct state parameter.');
 			return;
 		}
 
 		// return stored code
-		console.log("GET success: Returning code");
+		console.log("POST success: Returning code");
 		res.status(200).json({ code: stored.code });
 	}
 };
