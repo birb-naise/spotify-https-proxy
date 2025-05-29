@@ -40,6 +40,8 @@ export default async (req, res) => {
 		stored.state = STATE;
 		stored.error = ERROR;
 
+		print(`PROXY: Received code: ${CODE}, state: ${STATE}, error: ${ERROR}`);
+
 		res.status(200).send('Code stored!');
 	}
 
@@ -53,13 +55,13 @@ export default async (req, res) => {
 
 		// return error if no state provided
 		if (!STATE) {
-			returnError('PROXY: No state provided. Please provide a state parameter and try again.');
+			returnError(stored.error || 'PROXY: No state provided. Please provide a state parameter and try again.');
 			return;
 		}
 
 		// return error if no code stored
 		if (!stored.code) {
-			returnError('PROXY: No code stored. Please complete the Spotify OAuth flow and try again.');
+			returnError(stored.error || 'PROXY: No auth code stored in proxy. Please complete the Spotify OAuth flow and try again.');
 			clearStored();
 			return;
 		}
