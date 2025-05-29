@@ -62,21 +62,17 @@ export default async (req, res) => {
 		// return error if no code stored
 		if (!stored.code) {
 			returnError(stored.error || 'PROXY: No auth code stored in proxy. Please complete the Spotify OAuth flow and try again.');
-			clearStored();
 			return;
 		}
 
 		// return error if stored state =/= provided state
 		if (stored.state !== STATE) {
 			returnError(stored.error || 'State mismatch (no error provided)');
-			clearStored();
 			return;
 		}
 
 		// return stored code
+		console.log("Stored:", stored);
 		res.status(200).json({ code: stored.code });
-
-		// reset stored values
-		clearStored();
 	}
 };
