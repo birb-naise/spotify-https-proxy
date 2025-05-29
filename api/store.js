@@ -28,6 +28,12 @@ function clearStored() {
 
 // API endpoint to store and retrieve Spotify OAuth code
 export default async (req, res) => {
+	console.log(`Incoming ${req.method} request:`, {
+		query: req.query,
+		body: req.body,
+		stored: stored // Log current stored values
+	});
+
 	// save code from Spotify OAuth flow
 	if (req.method === 'POST') {
 		// get code and state from query params or body
@@ -40,8 +46,7 @@ export default async (req, res) => {
 		stored.state = STATE;
 		stored.error = ERROR;
 
-		print(`PROXY: Received code: ${CODE}, state: ${STATE}, error: ${ERROR}`);
-
+		console.log("Stored after POST:", stored);
 		res.status(200).send('Code stored!');
 	}
 
@@ -55,24 +60,23 @@ export default async (req, res) => {
 
 		// return error if no state provided
 		if (!STATE) {
-			returnError(stored.error || 'PROXY: No state provided. Please provide a state parameter and try again.');
+			console.log("GET failed: No state provided");
+			returnError('PROXY: No state provided. Please provide a state parameter and try again.');
 			return;
 		}
 
-		// return error if no code stored
-		if (!stored.code) {
-			returnError(stored.error || 'PROXY: No auth code stored in proxy. Please complete the Spotify OAuth flow and try again.');
-			return;
-		}
-
-		// return error if stored state =/= provided state
-		if (stored.state !== STATE) {
-			returnError(stored.error || 'State mismatch (no error provided)');
+		// return error if no code stored or state mismatch
+		if (!stored.code || stored.state !== STATE) {
+			console.log("GET failed: No code or state mismatch", {
+				storedState: stored.state,
+				requestedState: STATE
+			});
+			returnError('PROXY: No auth code stored in proxy. Please complete the Spotify OAuth flow and try again.');
 			return;
 		}
 
 		// return stored code
-		console.log("Stored:", stored);
+		console.log("GET success: Returning code");
 		res.status(200).json({ code: stored.code });
 	}
 };
