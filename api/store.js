@@ -41,7 +41,7 @@ export default async (req, res) => {
 		}
 
 		console.log("Stored after GET:", stored);
-		res.status(200).send('Code stored!');
+		res.status(200).send('Authorization recieved. You can close this window now.');
 	}
 
 	// get saved code to return to Pico
